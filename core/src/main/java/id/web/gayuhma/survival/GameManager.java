@@ -56,29 +56,22 @@ public class GameManager extends ApplicationAdapter {
         lastEnemySpawnTime = TimeUtils.nanoTime();
     }
 
-    private void shootAutoAim() {
-        if (enemies.isEmpty()) return;
-        
+    private void shootTowardsCursor() {
         Vector2 playerCenter = player.getCenter();
-        Enemy closestEnemy = null;
-        float minDistance = Float.MAX_VALUE;
         
-        // Cari musuh terdekat
-        for (Enemy enemy : enemies) {
-            float distance = playerCenter.dst(enemy.getCenter());
-            if (distance < minDistance) {
-                minDistance = distance;
-                closestEnemy = enemy;
-            }
-        }
+        // 1. Ambil posisi kursor mouse
+        float mouseX = Gdx.input.getX();
+        // Di LibGDX, input Y dihitung dari atas layar (Top-Left = 0,0).
+        // Sedangkan penggambaran game kita dari bawah layar (Bottom-Left = 0,0).
+        // Oleh karena itu koordinat Y harus dibalik (Tinggi Layar - Posisi Y Mouse).
+        float mouseY = screenHeight - Gdx.input.getY();
         
-        // Tembak musuh tersebut
-        if (closestEnemy != null) {
-            Vector2 direction = new Vector2(
-                closestEnemy.getCenter().x - playerCenter.x, 
-                closestEnemy.getCenter().y - playerCenter.y
-            );
-            direction.nor();
+        // 2. Hitung vektor arah tembakan (Target Kursor - Posisi Player)
+        Vector2 direction = new Vector2(mouseX - playerCenter.x, mouseY - playerCenter.y);
+        
+        // 3. Pastikan kursor tidak pas berada di titik tengah player (mencegah error panjang vektor 0)
+        if (!direction.isZero()) {
+            direction.nor(); // Normalisasi vektor arah
             
             bullets.add(new Bullet(playerCenter.x, playerCenter.y, direction, bulletSpeed));
             lastShootTime = TimeUtils.nanoTime();
@@ -104,9 +97,9 @@ public class GameManager extends ApplicationAdapter {
             spawnEnemy();
         }
         
-        // 3. Timer Tembakan Otomatis
+        // 3. Timer Tembakan Otomatis (mengarah ke kursor)
         if (TimeUtils.nanoTime() - lastShootTime > 1000000000L) {
-            shootAutoAim();
+            shootTowardsCursor();
         }
         
         Vector2 playerCenter = player.getCenter();
