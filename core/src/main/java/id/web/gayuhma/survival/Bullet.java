@@ -4,30 +4,36 @@ import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.math.Vector2;
 
-public class Bullet {
-    public Vector2 position;
-    public Vector2 velocity;
-    public float radius = 4f;
-    
+/**
+ * Inheritance: extends GameObject
+ */
+public class Bullet extends GameObject {
+
+    private final Vector2 velocity;
+    private final float radius = 4f;
+
     public Bullet(float startX, float startY, Vector2 direction, float speed) {
-        position = new Vector2(startX, startY);
-        // Vektor arah (yang sudah dinormalisasi panjang 1) dikali dengan speed
-        velocity = new Vector2(direction.x * speed, direction.y * speed);
+        super(startX - 4, startY - 4, 8, 8);
+        this.velocity = new Vector2(direction.x * speed, direction.y * speed);
     }
-    
+
+    // Method Overriding: gerakkan peluru sesuai velocity per frame
+    @Override
     public void update(float deltaTime) {
-        position.x += velocity.x * deltaTime;
-        position.y += velocity.y * deltaTime;
+        x += velocity.x * deltaTime;
+        y += velocity.y * deltaTime;
     }
-    
+
+    // Method Overriding + Polymorphism: lingkaran kuning, bukan kotak default
+    @Override
     public void draw(ShapeRenderer shapeRenderer) {
         shapeRenderer.setColor(Color.YELLOW);
-        shapeRenderer.circle(position.x, position.y, radius);
+        shapeRenderer.circle(x + radius, y + radius, radius);
     }
-    
-    // Cek apakah peluru sudah terbang keluar dari area layar
+
     public boolean isOffScreen(float screenWidth, float screenHeight) {
-        return position.x < 0 || position.x > screenWidth || 
-               position.y < 0 || position.y > screenHeight;
+        return x < 0 || x > screenWidth || y < 0 || y > screenHeight;
     }
+
+    public float getRadius() { return radius; }
 }

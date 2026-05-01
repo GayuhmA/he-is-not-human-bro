@@ -4,65 +4,67 @@ import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
-import com.badlogic.gdx.math.Rectangle;
-import com.badlogic.gdx.math.Vector2;
 
-public class Player {
-    public Rectangle bounds;
-    public float speed = 200f;
-    public int hp;
-    public final int maxHp = 100;
-    
+/**
+ * Inheritance: extends GameObject
+ * Interface: implements IDamageable
+ * Encapsulation: semua field private, akses via getter/setter
+ */
+public class Player extends GameObject implements IDamageable {
+
+    private final float speed = 200f;
+    private int hp;
+    private final int maxHp = 100;
+
     public Player(float startX, float startY) {
-        bounds = new Rectangle(startX, startY, 32, 32);
-        hp = maxHp;
+        super(startX, startY, 32, 32);
+        this.hp = maxHp;
     }
-    
-    public void update(float deltaTime, float screenWidth, float screenHeight) {
-        // Logika Input dan Pergerakan
-        if (Gdx.input.isKeyPressed(Input.Keys.A)) bounds.x -= speed * deltaTime;
-        if (Gdx.input.isKeyPressed(Input.Keys.D)) bounds.x += speed * deltaTime;
-        if (Gdx.input.isKeyPressed(Input.Keys.S)) bounds.y -= speed * deltaTime;
-        if (Gdx.input.isKeyPressed(Input.Keys.W)) bounds.y += speed * deltaTime;
-        
-        // Mencegah player keluar dari layar
-        if (bounds.x < 0) bounds.x = 0;
-        if (bounds.x > screenWidth - bounds.width) bounds.x = screenWidth - bounds.width;
-        if (bounds.y < 0) bounds.y = 0;
-        if (bounds.y > screenHeight - bounds.height) bounds.y = screenHeight - bounds.height;
+
+    // Method Overriding: implementasi update() dari GameObject
+    @Override
+    public void update(float deltaTime) {
+        if (Gdx.input.isKeyPressed(Input.Keys.A)) x -= speed * deltaTime;
+        if (Gdx.input.isKeyPressed(Input.Keys.D)) x += speed * deltaTime;
+        if (Gdx.input.isKeyPressed(Input.Keys.S)) y -= speed * deltaTime;
+        if (Gdx.input.isKeyPressed(Input.Keys.W)) y += speed * deltaTime;
     }
-    
+
+    // Batasi posisi player agar tidak keluar layar
+    public void clampToScreen(float screenWidth, float screenHeight) {
+        if (x < 0) x = 0;
+        if (x > screenWidth - width) x = screenWidth - width;
+        if (y < 0) y = 0;
+        if (y > screenHeight - height) y = screenHeight - height;
+    }
+
+    // Method Overriding: gambar kotak biru + health bar hijau di atas player
+    @Override
     public void draw(ShapeRenderer shapeRenderer) {
-        // Menggambar kotak player (Biru)
         shapeRenderer.setColor(Color.BLUE);
-        shapeRenderer.rect(bounds.x, bounds.y, bounds.width, bounds.height);
-        
-        // Menggambar bar darah (Hijau)
+        shapeRenderer.rect(x, y, width, height);
+
+        // Latar bar HP (abu-abu)
+        shapeRenderer.setColor(Color.DARK_GRAY);
+        shapeRenderer.rect(x, y + 36, width, 4);
+
+        // Bar HP proporsional
         shapeRenderer.setColor(Color.GREEN);
-        shapeRenderer.rect(bounds.x, bounds.y + 36, bounds.width * (Math.max(hp, 0) / (float) maxHp), 4);
+        shapeRenderer.rect(x, y + 36, width * (Math.max(hp, 0) / (float) maxHp), 4);
     }
-    
-    // Bantuan untuk sistem tabrakan (mendapatkan titik tengah)
-    public Vector2 getCenter() {
-        return new Vector2(bounds.x + bounds.width / 2, bounds.y + bounds.height / 2);
-    }
-    
-    // Bantuan radius untuk deteksi tabrakan
-    public float getRadius() {
-        return bounds.width / 2;
-    }
-    
-    public void takeDamage(int amount) {
-        hp -= amount;
-    }
-    
-    public boolean isDead() {
-        return hp <= 0;
-    }
-    
+
+    // Implementasi kontrak IDamageable
+    @Override
+    public void takeDamage(int amount) { this.hp -= amount; }
+
+    @Override
+    public boolean isDead() { return hp <= 0; }
+
+    public int getHp() { return hp; }
+    public int getMaxHp() { return maxHp; }
+
     public void reset(float startX, float startY) {
-        hp = maxHp;
-        bounds.x = startX;
-        bounds.y = startY;
+        setPosition(startX, startY); // memanfaatkan setPosition() warisan dari GameObject
+        this.hp = maxHp;
     }
 }

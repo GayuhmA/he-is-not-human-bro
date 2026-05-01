@@ -2,48 +2,50 @@ package id.web.gayuhma.survival;
 
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
-import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.math.Vector2;
 
-public class Enemy {
-    public Rectangle bounds;
-    public float speed = 100f;
-    public int hp = 20;
-    
+/**
+ * Inheritance: extends GameObject
+ * Interface: implements IDamageable
+ * Method Overloading: dua versi update() — diam vs mengejar target
+ */
+public class Enemy extends GameObject implements IDamageable {
+
+    private final float speed = 100f;
+    private int hp = 20;
+
     public Enemy(float x, float y) {
-        bounds = new Rectangle(x, y, 24, 24);
+        super(x, y, 24, 24);
     }
-    
-    public void update(float deltaTime, Vector2 playerCenter) {
-        // Mekanisme Kejar (Chasing Mechanic)
-        Vector2 enemyCenter = getCenter();
-        Vector2 direction = new Vector2(playerCenter.x - enemyCenter.x, playerCenter.y - enemyCenter.y);
-        direction.nor(); // Normalisasi vektor agar panjangnya 1
-        
-        bounds.x += direction.x * speed * deltaTime;
-        bounds.y += direction.y * speed * deltaTime;
+
+    // Method Overloading versi 1: musuh diam (tidak punya target)
+    @Override
+    public void update(float deltaTime) {
+        // tidak bergerak
     }
-    
+
+    // Method Overloading versi 2: musuh mengejar target — nama sama, parameter beda
+    public void update(float deltaTime, Vector2 target) {
+        Vector2 direction = new Vector2(target.x - getCenter().x, target.y - getCenter().y);
+        direction.nor();
+        x += direction.x * speed * deltaTime;
+        y += direction.y * speed * deltaTime;
+    }
+
+    // Method Overriding: gambar kotak merah, warna di-set sebelum panggil super
+    @Override
     public void draw(ShapeRenderer shapeRenderer) {
         shapeRenderer.setColor(Color.RED);
-        shapeRenderer.rect(bounds.x, bounds.y, bounds.width, bounds.height);
+        super.draw(shapeRenderer);
     }
-    
-    // Mengambil titik tengah untuk keperluan perhitungan jarak tabrakan
-    public Vector2 getCenter() {
-        return new Vector2(bounds.x + bounds.width / 2, bounds.y + bounds.height / 2);
-    }
-    
-    // Mengambil nilai radius
-    public float getRadius() {
-        return bounds.width / 2;
-    }
-    
-    public void takeDamage(int amount) {
-        hp -= amount;
-    }
-    
-    public boolean isDead() {
-        return hp <= 0;
-    }
+
+    // Implementasi kontrak IDamageable
+    @Override
+    public void takeDamage(int amount) { this.hp -= amount; }
+
+    @Override
+    public boolean isDead() { return hp <= 0; }
+
+    public int getHp() { return hp; }
+    public float getRadius() { return width / 2; }
 }
