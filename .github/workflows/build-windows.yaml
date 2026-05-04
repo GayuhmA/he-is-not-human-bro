@@ -1,0 +1,32 @@
+name: Build Windows Game
+
+on:
+  push:
+    branches: [ "main", "master" ]
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+    - name: Checkout Code
+      uses: actions/checkout@v4
+
+    - name: Setup Java 21
+      uses: actions/setup-java@v4
+      with:
+        java-version: '21'
+        distribution: 'temurin'
+
+    - name: Build Fat JAR
+      run: ./gradlew lwjgl3:jar
+
+    - name: Package to EXE with jpackage
+      run: |
+        jpackage --type app-image --name "HeIsNotHumanBro" --input lwjgl3/build/libs/ --main-jar HeIsNotHumanBro-1.0.0.jar --main-class id.web.gayuhma.survival.lwjgl3.Lwjgl3Launcher --win-console
+        
+    - name: Upload Game Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: HeIsNotHumanBro-Windows
+        path: HeIsNotHumanBro/

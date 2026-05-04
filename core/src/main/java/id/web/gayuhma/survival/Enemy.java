@@ -11,11 +11,15 @@ import com.badlogic.gdx.math.Vector2;
  */
 public class Enemy extends GameObject implements IDamageable {
 
-    private final float speed = 100f;
-    private int hp = 20;
+    private float speed;
+    private int hp;
+    private int maxHp;
 
-    public Enemy(float x, float y) {
+    public Enemy(float x, float y, float speed, int hp) {
         super(x, y, 24, 24);
+        this.speed = speed;
+        this.hp = hp;
+        this.maxHp = hp;
     }
 
     // Method Overloading versi 1: musuh diam (tidak punya target)
@@ -47,5 +51,6 @@ public class Enemy extends GameObject implements IDamageable {
     public boolean isDead() { return hp <= 0; }
 
     public int getHp() { return hp; }
+    public int getMaxHp() { return maxHp; }
     public float getRadius() { return width / 2; }
 }
