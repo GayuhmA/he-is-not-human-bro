@@ -9,9 +9,11 @@ import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.Pixmap;
 import com.badlogic.gdx.graphics.Texture;
+import com.badlogic.gdx.graphics.g2d.Animation;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.GlyphLayout;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
+import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.graphics.g2d.freetype.FreeTypeFontGenerator;
 import com.badlogic.gdx.graphics.g2d.freetype.FreeTypeFontGenerator.FreeTypeFontParameter;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
@@ -57,11 +59,23 @@ public class GameManager extends ApplicationAdapter {
     // Handles resizing and fullscreen scaling
     private OrthographicCamera camera;
     private ExtendViewport viewport;
+    
+    private OrthographicCamera hudCamera;
+    private ExtendViewport hudViewport;
 
     private Player player;
     private Array<Enemy> enemies;
     private Array<Bullet> bullets;
     private Array<XpOrb> xpOrbs;
+    private Array<DamageText> damageTexts;
+
+    // Enemy Spritesheets
+    private Texture batSheet;
+    private Texture eyeSheet;
+    private Animation<TextureRegion> batAnimation;
+    private Animation<TextureRegion> eyeAnimation;
+
+    private Texture mapTexture;
 
     private float worldWidth = 640f;
     private float worldHeight = 360f;
@@ -83,6 +97,9 @@ public class GameManager extends ApplicationAdapter {
         camera = new OrthographicCamera();
         viewport = new ExtendViewport(worldWidth, worldHeight, camera);
 
+        hudCamera = new OrthographicCamera();
+        hudViewport = new ExtendViewport(worldWidth, worldHeight, hudCamera);
+
         shapeRenderer = new ShapeRenderer();
         batch = new SpriteBatch();
 
@@ -99,6 +116,21 @@ public class GameManager extends ApplicationAdapter {
         enemies = new Array<>();
         bullets = new Array<>();
         xpOrbs = new Array<>();
+        damageTexts = new Array<>();
+
+        batSheet = new Texture("images/enemy/Flight_Bat.png");
+        TextureRegion[][] batFrames = TextureRegion.split(batSheet, batSheet.getWidth() / 11, batSheet.getHeight());
+        batAnimation = new Animation<>(0.1f, batFrames[0]);
+        batAnimation.setPlayMode(Animation.PlayMode.LOOP);
+
+        eyeSheet = new Texture("images/enemy/Flying_Eye.png");
+        TextureRegion[][] eyeFrames = TextureRegion.split(eyeSheet, eyeSheet.getWidth() / 8, eyeSheet.getHeight());
+        eyeAnimation = new Animation<>(0.1f, eyeFrames[0]);
+        eyeAnimation.setPlayMode(Animation.PlayMode.LOOP);
+
+        mapTexture = new Texture("images/gameplay/map.png");
+        mapTexture.setWrap(Texture.TextureWrap.Repeat, Texture.TextureWrap.Repeat);
+
         spawnEnemy(100f, 20); // Nilai awal (Easy)
 
         titleTexture = new Texture("images/menu/Game-Title.png");
@@ -126,21 +158,43 @@ public class GameManager extends ApplicationAdapter {
     @Override
     public void resize(int width, int height) {
         viewport.update(width, height, true);
+        hudViewport.update(width, height, true);
 
         worldWidth = viewport.getWorldWidth();
         worldHeight = viewport.getWorldHeight();
     }
 
     private void spawnEnemy(float speed, int hp) {
+        float camX = camera.position.x;
+        float camY = camera.position.y;
+        float halfW = viewport.getWorldWidth() / 2f;
+        float halfH = viewport.getWorldHeight() / 2f;
+
         float x, y;
         if (MathUtils.randomBoolean()) {
-            x = MathUtils.randomBoolean() ? 0 : worldWidth - 24;
-            y = MathUtils.random(0, worldHeight - 24);
+            x = MathUtils.randomBoolean() ? camX - halfW - 24 : camX + halfW + 24;
+            y = MathUtils.random(camY - halfH, camY + halfH);
         } else {
-            x = MathUtils.random(0, worldWidth - 24);
-            y = MathUtils.randomBoolean() ? 0 : worldHeight - 24;
+            x = MathUtils.random(camX - halfW, camX + halfW);
+            y = MathUtils.randomBoolean() ? camY - halfH - 24 : camY + halfH + 24;
         }
-        enemies.add(new Enemy(x, y, speed, hp));
+
+        // Determine which enemy type based on phase
+        int currentMinute = (int) (survivalTime / 60);
+        Animation<TextureRegion> selectedAnimation;
+
+        if (currentMinute == 0) {
+            // Phase 1
+            selectedAnimation = batAnimation;
+        } else if (currentMinute == 1) {
+            // Phase 2
+            selectedAnimation = MathUtils.randomBoolean() ? batAnimation : eyeAnimation;
+        } else {
+            // Phase 3
+            selectedAnimation = eyeAnimation;
+        }
+
+        enemies.add(new Enemy(x, y, speed, hp, selectedAnimation));
         lastEnemySpawnTime = TimeUtils.nanoTime();
     }
 
@@ -163,6 +217,8 @@ public class GameManager extends ApplicationAdapter {
 
         viewport.apply();
         camera.update();
+        hudViewport.apply();
+        hudCamera.update();
 
         float deltaTime = Gdx.graphics.getDeltaTime();
 
@@ -209,7 +265,7 @@ public class GameManager extends ApplicationAdapter {
         } else if (state == GameState.MAIN_MENU) {
             // Handle Play button click
             if (Gdx.input.justTouched()) {
-                Vector2 touch = viewport.unproject(new Vector2(Gdx.input.getX(), Gdx.input.getY()));
+                Vector2 touch = hudViewport.unproject(new Vector2(Gdx.input.getX(), Gdx.input.getY()));
 
                 float btnW = 200f;
                 float btnH = btnW * (129f / 409f);
@@ -225,7 +281,7 @@ public class GameManager extends ApplicationAdapter {
     }
 
     private void drawMenu() {
-        batch.setProjectionMatrix(camera.combined);
+        batch.setProjectionMatrix(hudCamera.combined);
         batch.begin();
 
         // Draw animated title
@@ -310,13 +366,14 @@ public class GameManager extends ApplicationAdapter {
             enemies.clear();
             bullets.clear();
             xpOrbs.clear();
+            damageTexts.clear();
             survivalTime = 0f;
             spawnEnemy(100f, 20);
         }
     }
 
     private void drawLoading() {
-        batch.setProjectionMatrix(camera.combined);
+        batch.setProjectionMatrix(hudCamera.combined);
         batch.begin();
 
         // Fade out menu
@@ -356,7 +413,7 @@ public class GameManager extends ApplicationAdapter {
         }
 
         if (Gdx.input.justTouched()) {
-            Vector2 touch = viewport.unproject(new Vector2(Gdx.input.getX(), Gdx.input.getY()));
+            Vector2 touch = hudViewport.unproject(new Vector2(Gdx.input.getX(), Gdx.input.getY()));
             float pauseSize = 28f;
             float margin = 18f;
             float pauseX = worldWidth - margin - pauseSize;
@@ -370,7 +427,10 @@ public class GameManager extends ApplicationAdapter {
 
         survivalTime += deltaTime;
         player.update(deltaTime);
-        player.clampToScreen(worldWidth, worldHeight);
+
+        // Update Camera Position to follow player
+        camera.position.set(player.getCenter().x, player.getCenter().y, 0);
+        camera.update();
 
         // Difficulty scaling
         int currentMinute = (int) (survivalTime / 60);
@@ -410,7 +470,8 @@ public class GameManager extends ApplicationAdapter {
             Bullet bullet = bullets.get(i);
             bullet.update(deltaTime);
 
-            if (bullet.isOffScreen(worldWidth, worldHeight)) {
+            // Periksa batas bullet berdasarkan koordinat dunia saat ini (misal radius dari player)
+            if (bullet.getCenter().dst(playerCenter) > 1000f) {
                 bullets.removeIndex(i);
                 continue;
             }
@@ -421,6 +482,9 @@ public class GameManager extends ApplicationAdapter {
                 if (bullet.getCenter().dst(enemy.getCenter()) < (bullet.getRadius() + enemy.getRadius())) {
                     enemy.takeDamage(10);
                     hit = true;
+                    // Tampilkan angka pop up damage
+                    damageTexts.add(new DamageText(enemy.getCenter().x, enemy.getCenter().y + 10, 10));
+
                     if (enemy.isDead()) {
                         // Drop XP berdasarkan tier musuh (berdasar HP asli)
                         // HP 20 -> 1 XP, HP 30 -> 2 XP, HP 40 -> 3 XP, dst.
@@ -449,6 +513,15 @@ public class GameManager extends ApplicationAdapter {
             }
         }
 
+        // Update animasi Damage Text
+        for (int i = damageTexts.size - 1; i >= 0; i--) {
+            DamageText dt = damageTexts.get(i);
+            dt.update(deltaTime);
+            if (dt.isFinished()) {
+                damageTexts.removeIndex(i);
+            }
+        }
+
         // Game over: transisi ke animasi game over
         if (player.isDead()) {
             state = GameState.GAME_OVER;
@@ -457,30 +530,49 @@ public class GameManager extends ApplicationAdapter {
     }
 
     private void drawGame() {
-        shapeRenderer.setProjectionMatrix(camera.combined);
+        // --- 1. DRAW WORLD ---
         batch.setProjectionMatrix(camera.combined);
+        shapeRenderer.setProjectionMatrix(camera.combined);
 
-        // 1. Gambar enemy, bullet, dan xp orb pakai ShapeRenderer
+        batch.begin();
+        // Calculate U/V based on camera position for repeat wrapping
+        float viewX = camera.position.x - viewport.getWorldWidth() / 2;
+        float viewY = camera.position.y - viewport.getWorldHeight() / 2;
+        float viewW = viewport.getWorldWidth();
+        float viewH = viewport.getWorldHeight();
+        
+        float u = viewX / mapTexture.getWidth();
+        float v = 1f - (viewY / mapTexture.getHeight());
+        float u2 = (viewX + viewW) / mapTexture.getWidth();
+        float v2 = 1f - ((viewY + viewH) / mapTexture.getHeight());
+        
+        batch.draw(mapTexture, viewX, viewY, viewW, viewH, u, v, u2, v2);
+
+        for (Enemy enemy : enemies) enemy.draw(batch);
+        player.draw(batch);
+        for (DamageText dt : damageTexts) dt.draw(batch, font);
+        batch.end();
+
         shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
-        for (Enemy enemy : enemies) enemy.draw(shapeRenderer);
         for (Bullet bullet : bullets) bullet.draw(shapeRenderer);
         for (XpOrb orb : xpOrbs) orb.draw(shapeRenderer);
-        player.draw(shapeRenderer); // hati & health bar HUD
+        shapeRenderer.end();
+
+        // --- 2. DRAW HUD ---
+        batch.setProjectionMatrix(hudCamera.combined);
+        shapeRenderer.setProjectionMatrix(hudCamera.combined);
+
+        shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
         drawXpBar(shapeRenderer);
         shapeRenderer.end();
 
-        // Draw player
         batch.begin();
-        player.draw(batch);
-
-        // Draw pause button
+        player.drawHUD(batch, worldHeight);
         float pauseSize = 28f;
         float margin = 18f;
         batch.draw(pauseBtnTex, worldWidth - margin - pauseSize, worldHeight - margin - pauseSize, pauseSize, pauseSize);
-
         batch.end();
 
-        // Draw level info
         drawLevelText();
     }
 
@@ -551,7 +643,7 @@ public class GameManager extends ApplicationAdapter {
         Gdx.gl.glEnable(GL20.GL_BLEND);
         Gdx.gl.glBlendFunc(GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA);
 
-        shapeRenderer.setProjectionMatrix(camera.combined);
+        shapeRenderer.setProjectionMatrix(hudCamera.combined);
         shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
 
         if (gameOverTimer <= 0.1f) {
@@ -583,7 +675,7 @@ public class GameManager extends ApplicationAdapter {
         Gdx.gl.glDisable(GL20.GL_BLEND);
 
         // Render text
-        batch.setProjectionMatrix(camera.combined);
+        batch.setProjectionMatrix(hudCamera.combined);
         batch.begin();
 
         if (gameOverTimer > 0.1f && gameOverTimer <= 2.5f) {
@@ -656,7 +748,7 @@ public class GameManager extends ApplicationAdapter {
         }
 
         if (Gdx.input.justTouched()) {
-            Vector2 touch = viewport.unproject(new Vector2(Gdx.input.getX(), Gdx.input.getY()));
+            Vector2 touch = hudViewport.unproject(new Vector2(Gdx.input.getX(), Gdx.input.getY()));
 
             float btnSize = 120f; // Diperbesar lagi
 
@@ -690,7 +782,7 @@ public class GameManager extends ApplicationAdapter {
         // Overlay redup
         Gdx.gl.glEnable(GL20.GL_BLEND);
         Gdx.gl.glBlendFunc(GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA);
-        shapeRenderer.setProjectionMatrix(camera.combined);
+        shapeRenderer.setProjectionMatrix(hudCamera.combined);
         shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
         shapeRenderer.setColor(new Color(0f, 0f, 0f, 0.6f));
         shapeRenderer.rect(0, 0, worldWidth, worldHeight);
@@ -714,7 +806,7 @@ public class GameManager extends ApplicationAdapter {
         shapeRenderer.end();
         Gdx.gl.glDisable(GL20.GL_BLEND);
 
-        batch.setProjectionMatrix(camera.combined);
+        batch.setProjectionMatrix(hudCamera.combined);
         batch.begin();
 
         // Judul PAUSED
@@ -752,6 +844,9 @@ public class GameManager extends ApplicationAdapter {
         pauseBtnTex.dispose();
         resumeBtnTex.dispose();
         quitBtnTex.dispose();
+        batSheet.dispose();
+        eyeSheet.dispose();
+        mapTexture.dispose();
 
         if (customCursor != null) {
             customCursor.dispose();

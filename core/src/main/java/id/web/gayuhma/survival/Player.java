@@ -41,7 +41,7 @@ public class Player extends GameObject implements IDamageable {
     private int xpToNextLevel = 10; // Kebutuhan XP level 1 ke 2
 
     // Resolusi layar dinamis untuk HUD
-    private float currentWorldHeight = 360f;
+    private float hudWorldHeight = 360f;
 
     public Player(float startX, float startY) {
         super(startX, startY, 64, 64);
@@ -128,27 +128,22 @@ public class Player extends GameObject implements IDamageable {
         }
     }
 
-    // Batasi posisi player agar tidak keluar layar
-    public void clampToScreen(float screenWidth, float screenHeight) {
-        this.currentWorldHeight = screenHeight; // Simpan untuk posisi HUD
-        if (x < 0) x = 0;
-        if (x > screenWidth - width) x = screenWidth - width;
-        if (y < 0) y = 0;
-        if (y > screenHeight - height) y = screenHeight - height;
-    }
+    // Pembatas layar dihapus karena map kini infinite
 
-    public void draw(SpriteBatch batch) {
-        // Gambar 3 ikon hati di HUD (menggunakan texture)
+    public void drawHUD(SpriteBatch batch, float screenHeight) {
         float heartSize = 24f; // Ukuran asset gambar
         float gap       = 32f;
         float startX    = 10f;
-        float startY    = currentWorldHeight - 37f - (heartSize / 2); // Center alignment
+        float startY    = screenHeight - 37f - (heartSize / 2); // Center alignment
 
         for (int i = 0; i < maxHearts; i++) {
             float cx = startX + i * gap;
             Texture tex = (i < hearts) ? redHeartTex : noHeartTex;
             batch.draw(tex, cx, startY, heartSize, heartSize);
         }
+    }
+
+    public void draw(SpriteBatch batch) {
 
         // Saat kebal, kedipkan sprite player (gambar hanya setiap 0.1 detik ganjil)
         if (invincibilityTimer > 0 && (int)(invincibilityTimer * 10) % 2 != 0) {
