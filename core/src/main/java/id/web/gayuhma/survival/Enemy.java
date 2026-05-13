@@ -20,8 +20,6 @@ public class Enemy extends GameObject implements IDamageable {
     private float speed;
     private int hp;
     private int maxHp;
-
-    // Sprite drawing size
     private float drawWidth = 48f;
     private float drawHeight = 48f;
 

@@ -10,7 +10,6 @@ import com.badlogic.gdx.math.Vector2;
  */
 public abstract class GameObject {
 
-    // protected agar bisa diakses kelas anak, tapi tidak dari luar (Encapsulation)
     protected float x, y;
     protected float width, height;
 
@@ -21,13 +20,11 @@ public abstract class GameObject {
         this.height = height;
     }
 
-    // Method Overloading: setPosition versi 1 (x, y terpisah)
     public void setPosition(float x, float y) {
         this.x = x;
         this.y = y;
     }
 
-    // Method Overloading: setPosition versi 2 (Vector2) — nama sama, parameter beda
     public void setPosition(Vector2 pos) {
         this.x = pos.x;
         this.y = pos.y;
@@ -42,10 +39,8 @@ public abstract class GameObject {
     public float getWidth() { return width; }
     public float getHeight() { return height; }
 
-    // Abstract method — kelas anak wajib @Override ini (Method Overriding)
     public abstract void update(float deltaTime);
 
-    // Draw default: kotak. Kelas anak bisa @Override untuk tampilan berbeda.
     public void draw(ShapeRenderer shapeRenderer) {
         shapeRenderer.rect(x, y, width, height);
     }

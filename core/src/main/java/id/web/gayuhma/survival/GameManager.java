@@ -82,7 +82,6 @@ public class GameManager extends ApplicationAdapter {
 
     // Orb vacuum radius
     private final float orbVacuumRadius = 80f;
-    // Orb collection radius
     private final float orbCollectRadius = 16f;
 
     private long lastEnemySpawnTime;
@@ -131,7 +130,7 @@ public class GameManager extends ApplicationAdapter {
         mapTexture = new Texture("images/gameplay/map.png");
         mapTexture.setWrap(Texture.TextureWrap.Repeat, Texture.TextureWrap.Repeat);
 
-        spawnEnemy(100f, 20); // Nilai awal (Easy)
+        spawnEnemy(100f, 20);
 
         titleTexture = new Texture("images/menu/Game-Title.png");
         pressStartTexture = new Texture("images/menu/Press_to_start-Button.png");
@@ -142,7 +141,6 @@ public class GameManager extends ApplicationAdapter {
         resumeBtnTex = new Texture("images/menu/resume.png");
         quitBtnTex = new Texture("images/menu/quit.png");
 
-        // Setup custom cursor (64x64 required by LWJGL3)
         Pixmap originalPm = new Pixmap(Gdx.files.internal("images/gameplay/crosshair.png"));
         Pixmap cursorPm = new Pixmap(64, 64, originalPm.getFormat());
 

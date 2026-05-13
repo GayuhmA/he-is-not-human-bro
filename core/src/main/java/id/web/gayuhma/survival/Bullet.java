@@ -17,14 +17,12 @@ public class Bullet extends GameObject {
         this.velocity = new Vector2(direction.x * speed, direction.y * speed);
     }
 
-    // Method Overriding: gerakkan peluru sesuai velocity per frame
     @Override
     public void update(float deltaTime) {
         x += velocity.x * deltaTime;
         y += velocity.y * deltaTime;
     }
 
-    // Method Overriding + Polymorphism: lingkaran kuning, bukan kotak default
     @Override
     public void draw(ShapeRenderer shapeRenderer) {
         shapeRenderer.setColor(Color.YELLOW);

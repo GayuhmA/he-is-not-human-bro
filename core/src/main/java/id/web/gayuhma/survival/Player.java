@@ -25,9 +25,9 @@ public class Player extends GameObject implements IDamageable {
     private Texture noHeartTex;
     private Animation<TextureRegion> idleAnimation;
     private Animation<TextureRegion> walkAnimation;
-    private float stateTime = 0f;       // waktu berjalan untuk animasi
-    private boolean isMoving = false;    // apakah sedang bergerak
-    private boolean facingRight = true;  // arah hadap (untuk flip horizontal)
+    private float stateTime = 0f;       
+    private boolean isMoving = false;   
+    private boolean facingRight = true; 
 
     // Sistem nyawa
     private int hearts;
@@ -38,7 +38,7 @@ public class Player extends GameObject implements IDamageable {
     // Sistem XP & Level
     private int xp = 0;
     private int level = 1;
-    private int xpToNextLevel = 10; // Kebutuhan XP level 1 ke 2
+    private int xpToNextLevel = 10;
 
     // Resolusi layar dinamis untuk HUD
     private float hudWorldHeight = 360f;
@@ -65,13 +65,11 @@ public class Player extends GameObject implements IDamageable {
         noHeartTex = new Texture("images/gameplay/noheart.png");
     }
 
-    // Tambah XP; naik level otomatis jika sudah cukup
     public void addXp(int amount) {
         xp += amount;
         while (xp >= xpToNextLevel) {
             xp -= xpToNextLevel;
             level++;
-            // Formula baru: targetXP = baseXP * (level ^ 1.2)
             xpToNextLevel = (int) (10 * Math.pow(level, 1.2)); 
         }
     }
@@ -91,17 +89,16 @@ public class Player extends GameObject implements IDamageable {
     // Method Overriding: implementasi update() dari GameObject
     @Override
     public void update(float deltaTime) {
-        // Deteksi arah gerak
         boolean moving = false;
 
         if (Gdx.input.isKeyPressed(Input.Keys.A)) {
             x -= speed * deltaTime;
-            facingRight = false; // hadap kiri
+            facingRight = false;
             moving = true;
         }
         if (Gdx.input.isKeyPressed(Input.Keys.D)) {
             x += speed * deltaTime;
-            facingRight = true;  // hadap kanan
+            facingRight = true;
             moving = true;
         }
         if (Gdx.input.isKeyPressed(Input.Keys.S)) {
@@ -113,28 +110,24 @@ public class Player extends GameObject implements IDamageable {
             moving = true;
         }
 
-        // Jika status gerak berubah (mulai/berhenti), reset waktu animasi
         if (moving != isMoving) {
             stateTime = 0f;
         }
         isMoving = moving;
 
-        // Tambah waktu animasi
         stateTime += deltaTime;
 
-        // Hitung mundur timer kebal
         if (invincibilityTimer > 0) {
             invincibilityTimer -= deltaTime;
         }
     }
 
-    // Pembatas layar dihapus karena map kini infinite
 
     public void drawHUD(SpriteBatch batch, float screenHeight) {
-        float heartSize = 24f; // Ukuran asset gambar
+        float heartSize = 24f; 
         float gap       = 32f;
         float startX    = 10f;
-        float startY    = screenHeight - 37f - (heartSize / 2); // Center alignment
+        float startY    = screenHeight - 37f - (heartSize / 2);
 
         for (int i = 0; i < maxHearts; i++) {
             float cx = startX + i * gap;
@@ -145,12 +138,10 @@ public class Player extends GameObject implements IDamageable {
 
     public void draw(SpriteBatch batch) {
 
-        // Saat kebal, kedipkan sprite player (gambar hanya setiap 0.1 detik ganjil)
         if (invincibilityTimer > 0 && (int)(invincibilityTimer * 10) % 2 != 0) {
-            return; // skip frame ini (efek kedip)
+            return;
         }
 
-        // Pilih animasi berdasarkan status gerak
         TextureRegion currentFrame;
         if (isMoving) {
             currentFrame = walkAnimation.getKeyFrame(stateTime);
@@ -158,7 +149,6 @@ public class Player extends GameObject implements IDamageable {
             currentFrame = idleAnimation.getKeyFrame(stateTime);
         }
 
-        // Flip horizontal jika hadap kiri
         if (!facingRight && !currentFrame.isFlipX()) {
             currentFrame.flip(true, false);
         } else if (facingRight && currentFrame.isFlipX()) {
@@ -168,7 +158,6 @@ public class Player extends GameObject implements IDamageable {
         batch.draw(currentFrame, x, y, width, height);
     }
 
-    // Method Overriding: dikosongkan karena HUD hati kini digambar pakai SpriteBatch
     @Override
     public void draw(ShapeRenderer shapeRenderer) {
     }
